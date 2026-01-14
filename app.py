@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jan 12 11:18:22 2026
-
-@author: ag261
-"""
-
 from special_relativity.lorentz import gamma, lorentz_transform, inverse_lorentz
 import numpy as np
 import matplotlib.pyplot as plt
@@ -575,31 +568,66 @@ if mode == "Special Relativity":
         st.divider()
     
         # -------- Animation: Rod Contraction --------
+        
+
         st.subheader("Animated Length Contraction")
-    
         st.caption("The rod contracts along the direction of motion as speed increases.")
-    
-        rod_placeholder = st.empty()
-    
+        
+        frames = []
         steps = 30
-        dt = 0.1
-    
+        
         for i in range(steps + 1):
             factor = i / steps
             current_L = L0 - factor * (L0 - L)
-    
-            fig2, ax2 = plt.subplots(figsize=(6, 2))
-    
-            ax2.barh(["Rod at Rest"], [L0], color="blue")
-            ax2.barh(["Moving Rod"], [current_L], color="red")
-    
-            ax2.set_xlim(0, L0 * 1.2)
-            ax2.set_xlabel("Length (meters)")
-            ax2.set_title("Relativistic Length Contraction")
-    
-            rod_placeholder.pyplot(fig2)
-    
-            time.sleep(dt)
+        
+            frames.append(
+                go.Frame(
+                    data=[
+                        go.Bar(
+                            y=["Rod at Rest", "Moving Rod"],
+                            x=[L0, current_L],
+                            orientation="h",
+                            marker=dict(color=["blue", "red"])
+                        )
+                    ]
+                )
+            )
+        
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    y=["Rod at Rest", "Moving Rod"],
+                    x=[L0, L0],
+                    orientation="h",
+                    marker=dict(color=["blue", "red"])
+                )
+            ],
+            layout=go.Layout(
+                title="Relativistic Length Contraction",
+                xaxis=dict(range=[0, L0 * 1.2], title="Length (meters)"),
+                yaxis=dict(title="Rod"),
+                updatemenus=[
+                    dict(
+                        type="buttons",
+                        showactive=False,
+                        buttons=[
+                            dict(
+                                label="▶ Play",
+                                method="animate",
+                                args=[None, {
+                                    "frame": {"duration": 100, "redraw": True},
+                                    "fromcurrent": True
+                                }]
+                            )
+                        ]
+                    )
+                ]
+            ),
+            frames=frames
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+
     
     
     if sr_topic == "Relativity of Simultaneity":
@@ -659,92 +687,160 @@ if mode == "Special Relativity":
         st.pyplot(fig)
     
     
+        
+
+        
+
         st.subheader("Relativity of Simultaneity: Two Reference Frames")
-    
+        
         colA, colB = st.columns(2)
-    
-    
+        
+        train_length = 10
+        ground_length = 20
+        frames_count = 40
+        train_pos_start = -8
+        train_pos_end = 8
+        
+        
+        # =========================
+        # GROUND FRAME
+        # =========================
         with colA:
             st.markdown("### Ground Frame (Train is Moving)")
             st.markdown("Lightning strikes are **simultaneous** in this frame.")
         
-            play_ground = st.button("▶ Play Ground Frame", key="play_ground")
+            frames_ground = []
         
-            placeholderA = st.empty()
+            for i in range(frames_count):
+                train_x = train_pos_start + (train_pos_end - train_pos_start) * i / frames_count
         
-            if play_ground:
-                train_length = 10
-                ground_length = 20
-                frames = 40
-                train_pos_start = -8
-                train_pos_end = 8
+                # Lightning only at middle frame
+                show_flash = (i == frames_count // 2)
         
-                for i in range(frames):
+                frames_ground.append(go.Frame(
+                    data=[
+                        # Ground
+                        go.Scatter(x=[-ground_length, ground_length], y=[0, 0],
+                                   mode="lines", line=dict(color="black")),
         
-                    train_x = train_pos_start + (train_pos_end - train_pos_start) * i / frames
+                        # Train
+                        go.Scatter(x=[train_x, train_x + train_length], y=[0.2, 0.2],
+                                   mode="lines", line=dict(width=10, color="blue")),
         
-                    fig, ax = plt.subplots(figsize=(5, 2))
+                        # Observer
+                        go.Scatter(x=[train_x + train_length/2], y=[0.2],
+                                   mode="markers", marker=dict(size=10, color="red")),
         
-                    ax.plot([-ground_length, ground_length], [0, 0], color="black")
-                    ax.plot([train_x, train_x + train_length], [0.2, 0.2], linewidth=6, color="blue")
+                        # Left lightning
+                        go.Scatter(x=[train_x], y=[0.2],
+                                   mode="markers",
+                                   marker=dict(size=14, color="yellow"),
+                                   visible=show_flash),
         
-                    if i == frames // 2:
-                        ax.scatter(train_x, 0.2, color="yellow", s=100)
-                        ax.scatter(train_x + train_length, 0.2, color="yellow", s=100)
+                        # Right lightning
+                        go.Scatter(x=[train_x + train_length], y=[0.2],
+                                   mode="markers",
+                                   marker=dict(size=14, color="yellow"),
+                                   visible=show_flash)
+                    ]
+                ))
         
-                    observer_x = train_x + train_length / 2
-                    ax.scatter(observer_x, 0.2, color="red", s=80)
+            fig_ground = go.Figure(
+                data=frames_ground[0].data,
+                layout=go.Layout(
+                    title="Ground Frame",
+                    xaxis=dict(range=[-ground_length, ground_length], visible=False),
+                    yaxis=dict(range=[-1, 1], visible=False),
+                    height=260,
+                    updatemenus=[dict(
+                        type="buttons",
+                        showactive=False,
+                        buttons=[dict(
+                            label="▶ Play",
+                            method="animate",
+                            args=[None, {"frame": {"duration": 80, "redraw": True},
+                                         "fromcurrent": True}]
+                        )]
+                    )]
+                ),
+                frames=frames_ground
+            )
         
-                    ax.set_xlim(-ground_length, ground_length)
-                    ax.set_ylim(-1, 1)
-                    ax.axis("off")
+            st.plotly_chart(fig_ground, use_container_width=True)
         
-                    placeholderA.pyplot(fig)
-                    time.sleep(0.1)
-    
-    
-    
-    
+        
+        # =========================
+        # TRAIN FRAME
+        # =========================
         with colB:
             st.markdown("### Train Frame (Train is at Rest)")
             st.markdown("Lightning strikes are **NOT simultaneous** in this frame.")
         
-            play_train = st.button("▶ Play Train Frame", key="play_train")
+            frames_train = []
         
-            placeholderB = st.empty()
+            front_flash = frames_count // 3
+            back_flash = 2 * frames_count // 3
         
-            if play_train:
-                train_length = 10
-                ground_length = 20
-                frames = 40
+            for i in range(frames_count):
         
-                front_flash = frames // 3
-                back_flash = 2 * frames // 3
+                show_front = (i == front_flash)
+                show_back = (i == back_flash)
         
-                for i in range(frames):
+                frames_train.append(go.Frame(
+                    data=[
+                        # Ground
+                        go.Scatter(x=[-ground_length, ground_length], y=[0, 0],
+                                   mode="lines", line=dict(color="black")),
         
-                    fig, ax = plt.subplots(figsize=(5, 2))
+                        # Train (stationary)
+                        go.Scatter(x=[0, train_length], y=[0.2, 0.2],
+                                   mode="lines", line=dict(width=10, color="blue")),
         
-                    ax.plot([-ground_length, ground_length], [0, 0], color="black")
-                    ax.plot([0, train_length], [0.2, 0.2], linewidth=6, color="blue")
+                        # Observer
+                        go.Scatter(x=[train_length/2], y=[0.2],
+                                   mode="markers", marker=dict(size=10, color="red")),
         
-                    if i == front_flash:
-                        ax.scatter(train_length, 0.2, color="yellow", s=100)
-                        ax.text(train_length, 0.4, "Front", color="yellow")
+                        # Back lightning
+                        go.Scatter(x=[0], y=[0.2],
+                                   mode="markers+text",
+                                   marker=dict(size=14, color="yellow"),
+                                   text=["Back"],
+                                   textposition="top center",
+                                   visible=show_back),
         
-                    if i == back_flash:
-                        ax.scatter(0, 0.2, color="yellow", s=100)
-                        ax.text(0, 0.4, "Back", color="yellow")
+                        # Front lightning
+                        go.Scatter(x=[train_length], y=[0.2],
+                                   mode="markers+text",
+                                   marker=dict(size=14, color="yellow"),
+                                   text=["Front"],
+                                   textposition="top center",
+                                   visible=show_front)
+                    ]
+                ))
         
-                    observer_x = train_length / 2
-                    ax.scatter(observer_x, 0.2, color="red", s=80)
+            fig_train = go.Figure(
+                data=frames_train[0].data,
+                layout=go.Layout(
+                    title="Train Frame",
+                    xaxis=dict(range=[-ground_length, ground_length], visible=False),
+                    yaxis=dict(range=[-1, 1], visible=False),
+                    height=260,
+                    updatemenus=[dict(
+                        type="buttons",
+                        showactive=False,
+                        buttons=[dict(
+                            label="▶ Play",
+                            method="animate",
+                            args=[None, {"frame": {"duration": 80, "redraw": True},
+                                         "fromcurrent": True}]
+                        )]
+                    )]
+                ),
+                frames=frames_train
+            )
         
-                    ax.set_xlim(-ground_length, ground_length)
-                    ax.set_ylim(-1, 1)
-                    ax.axis("off")
-        
-                    placeholderB.pyplot(fig)
-                    time.sleep(0.1)
+            st.plotly_chart(fig_train, use_container_width=True)
+
     
         st.markdown("""
         ### Key Takeaway
@@ -801,6 +897,8 @@ if mode == "Special Relativity":
     
         st.pyplot(fig)
     
+        
+
         st.subheader("Animated Velocity Addition")
         
         st.markdown("""
@@ -815,41 +913,61 @@ if mode == "Special Relativity":
         
         st.info(f"Relativistic Combined Speed = {u_rel:.4f} c")
         
-        play_anim = st.button("▶ Play Velocity Animation")
-        
-        placeholder = st.empty()
-        
         ground_length = 30
         train_length = 10
-        frames = 40
+        frames_count = 40
         
-        if play_anim:
+        frames = []
         
-            for i in range(frames):
+        for i in range(frames_count):
+            train_x = -10 + (20 * i / frames_count)
+            ship_x = train_x + (train_length * u * i / frames_count)
         
-                fig, ax = plt.subplots(figsize=(6, 2))
+            frames.append(go.Frame(
+                data=[
+                    # Ground
+                    go.Scatter(x=[-ground_length, ground_length], y=[0, 0],
+                               mode="lines", line=dict(color="black")),
         
-                # Ground line
-                ax.plot([-ground_length, ground_length], [0, 0], color="black")
+                    # Train
+                    go.Scatter(x=[train_x, train_x + train_length], y=[0.2, 0.2],
+                               mode="lines", line=dict(width=10, color="blue"),
+                               name="Train"),
         
-                # Train motion
-                train_x = -10 + (20 * i / frames)
-                ax.plot([train_x, train_x + train_length], [0.2, 0.2],
-                        linewidth=6, color="blue", label="Train")
+                    # Spaceship
+                    go.Scatter(x=[ship_x], y=[0.2],
+                               mode="markers",
+                               marker=dict(size=12, color="red"),
+                               name="Spaceship")
+                ]
+            ))
         
-                # Spaceship inside train
-                ship_x = train_x + (train_length * u * i / frames)
-                ax.scatter(ship_x, 0.2, color="red", s=80, label="Spaceship")
+        fig = go.Figure(
+            data=frames[0].data,
+            layout=go.Layout(
+                title="Relativistic Velocity Addition",
+                xaxis=dict(range=[-ground_length, ground_length], visible=False),
+                yaxis=dict(range=[-1, 1], visible=False),
+                height=280,
+                showlegend=True,
+                updatemenus=[dict(
+                    type="buttons",
+                    showactive=False,
+                    buttons=[dict(
+                        label="▶ Play",
+                        method="animate",
+                        args=[None, {
+                            "frame": {"duration": 80, "redraw": True},
+                            "fromcurrent": True
+                        }]
+                    )]
+                )]
+            ),
+            frames=frames
+        )
         
-                ax.set_xlim(-ground_length, ground_length)
-                ax.set_ylim(-1, 1)
-                ax.axis("off")
-        
-                ax.legend(loc="upper right")
-        
-                placeholder.pyplot(fig)
-        
-                time.sleep(0.1)
+        st.plotly_chart(fig, use_container_width=True)
+
     
         
     if sr_topic == "Minkowski Spacetime (2D)":
@@ -1299,43 +1417,76 @@ if mode == "Special Relativity":
         st.divider()
         
         # -------- Animation --------
+        
+
         st.subheader("Animated Twin Journey")
         
-        play_twin = st.button("▶ Play Twin Journey")
         
-        placeholder = st.empty()
+
+        v = st.slider("Spaceship Speed (v/c)", 0.1, 0.99, 0.8)
+        T = 10
+
         
-        frames = 60
+        frames_count = 60
+        frames = []
         
-        if play_twin:
+        for i in range(frames_count + 1):
+            frac = i / frames_count
+            current_t = 2 * T * frac
         
-            for i in range(frames + 1):
+            if current_t <= T:
+                x_ship = v * current_t
+            else:
+                x_ship = v * (2*T - current_t)
         
-                frac = i / frames
-                current_t = 2 * T * frac
+            frames.append(go.Frame(
+                data=[
+                    # Earth twin
+                    go.Scatter(
+                        x=[0], y=[0],
+                        mode="markers",
+                        marker=dict(size=14, color="blue"),
+                        name="Earth Twin"
+                    ),
         
-                if current_t <= T:
-                    x_ship = v * current_t
-                else:
-                    x_ship = v * (2*T - current_t)
+                    # Space twin
+                    go.Scatter(
+                        x=[x_ship], y=[0],
+                        mode="markers",
+                        marker=dict(size=14, color="red"),
+                        name="Space Twin"
+                    )
+                ]
+            ))
         
-                fig2, ax2 = plt.subplots(figsize=(6, 2))
+        fig = go.Figure(
+            data=frames[0].data,
+            layout=go.Layout(
+                title="Twin Paradox: Space Journey",
+                xaxis=dict(range=[-1, v*T + 1], visible=False),
+                yaxis=dict(range=[-1, 1], visible=False),
+                height=280,
+                showlegend=True,
+                updatemenus=[dict(
+                    type="buttons",
+                    showactive=False,
+                    buttons=[dict(
+                        label="▶ Play",
+                        method="animate",
+                        args=[None, {
+                            "frame": {"duration": 80, "redraw": True},
+                            "fromcurrent": True
+                        }]
+                    )]
+                )]
+            ),
+            frames=frames
+        )
         
-                # Earth
-                ax2.scatter(0, 0, color="blue", s=80, label="Earth Twin")
-        
-                # Spaceship
-                ax2.scatter(x_ship, 0, color="red", s=80, label="Space Twin")
-        
-                ax2.set_xlim(-1, v*T + 1)
-                ax2.set_ylim(-1, 1)
-                ax2.axis("off")
-                ax2.legend(loc="upper right")
-        
-                placeholder.pyplot(fig2)
-                time.sleep(0.1)
+        st.plotly_chart(fig, use_container_width=True)
         
         st.divider()
+
         
         # -------- Explanation --------
         st.markdown("""
@@ -1479,32 +1630,74 @@ elif mode == "General Relativity":
         st.divider()
     
         # -------- Optional Animation --------
+        
+
+        
+
         st.subheader("Animated Clock Near a Massive Object")
-    
-        play_gr = st.button("▶ Play Gravitational Clock Animation")
-        placeholder = st.empty()
-    
+        
         if time_factor is None:
             st.warning("Animation disabled: You are inside the event horizon.")
         else:
-            if play_gr:
-                for i in range(30):
-                    local_time = i * 0.5
-                    far_time = local_time * time_factor
-    
-                    fig2, ax2 = plt.subplots(figsize=(5, 2))
-    
-                    ax2.barh(["Far Away Clock"], [far_time], color="green")
-                    ax2.barh(["Near Mass Clock"], [local_time], color="red")
-    
-                    ax2.set_xlim(0, far_time + 1)
-                    ax2.set_xlabel("Elapsed Time")
-                    ax2.set_title("Gravitational Time Dilation")
-    
-                    placeholder.pyplot(fig2)
-                    time.sleep(0.1)
-    
+            frames_count = 30
+            frames = []
+        
+            for i in range(frames_count + 1):
+                local_time = i * 0.5
+                far_time = local_time * time_factor
+        
+                frames.append(go.Frame(
+                    data=[
+                        go.Bar(
+                            y=["Far Away Clock", "Near Mass Clock"],
+                            x=[far_time, local_time],
+                            orientation="h",
+                            marker=dict(color=["green", "red"])
+                        )
+                    ]
+                ))
+        
+            fig = go.Figure(
+                data=[
+                    go.Bar(
+                        y=["Far Away Clock", "Near Mass Clock"],
+                        x=[0, 0],
+                        orientation="h",
+                        marker=dict(color=["green", "red"])
+                    )
+                ],
+                layout=go.Layout(
+                    title="Gravitational Time Dilation",
+                    xaxis=dict(title="Elapsed Time", range=[0, max(5, 15 * time_factor)]),
+                    yaxis=dict(title="Clock"),
+                    height=320,
+                    margin=dict(l=140, r=40, t=80, b=40),  # Space for labels + button
+                    updatemenus=[dict(
+                        type="buttons",
+                        direction="left",
+                        x=0.5,
+                        y=1.2,
+                        xanchor="center",
+                        yanchor="top",
+                        showactive=False,
+                        buttons=[dict(
+                            label="▶ Play",
+                            method="animate",
+                            args=[None, {
+                                "frame": {"duration": 100, "redraw": True},
+                                "fromcurrent": True
+                            }]
+                        )]
+                    )]
+                ),
+                frames=frames
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
         st.divider()
+
+
     
         # -------- Explanation --------
         st.markdown("""
@@ -1641,75 +1834,97 @@ elif mode == "General Relativity":
 
     
         # -------- Simple Animation --------
-        st.subheader("Infall Toward a Black Hole (Improved Animation)")
+       
 
-        play_fall = st.button("▶ Play Infall Animation")
+        st.subheader("Infall Toward a Black Hole")
         
-        if play_fall:
+        r_positions = np.linspace(20, r_s + 0.3, 60)
         
-            r_positions = np.linspace(20, r_s + 0.3, 60)
+        frames = []
         
-            frames = []
-            for r_pos in r_positions:
-                frames.append(
-                    go.Frame(
-                        data=[
-                            go.Scatter(
-                                x=[0], y=[0],
-                                mode="markers",
-                                marker=dict(size=40, color="black"),
-                                name="Black Hole"
-                            ),
-                            go.Scatter(
-                                x=[r_pos], y=[0],
-                                mode="markers",
-                                marker=dict(size=15, color="blue"),
-                                name="Falling Object"
-                            )
-                        ]
-                    )
+        for r_pos in r_positions:
+            frames.append(
+                go.Frame(
+                    data=[
+                        # Black Hole
+                        go.Scatter(
+                            x=[0], y=[0],
+                            mode="markers",
+                            marker=dict(size=40, color="black"),
+                            name="Black Hole"
+                        ),
+                        # Falling Object
+                        go.Scatter(
+                            x=[r_pos], y=[0],
+                            mode="markers",
+                            marker=dict(size=15, color="deepskyblue"),
+                            name="Falling Object"
+                        )
+                    ]
                 )
+            )
         
-            fig = go.Figure(
-                data=[
-                    go.Scatter(x=[0], y=[0], mode="markers",
-                               marker=dict(size=40, color="black"),
-                               name="Black Hole"),
-                    go.Scatter(x=[20], y=[0], mode="markers",
-                               marker=dict(size=15, color="blue"),
-                               name="Falling Object")
-                ],
-                layout=go.Layout(
-                    xaxis=dict(range=[-22, 22], showgrid=False, zeroline=False),
-                    yaxis=dict(range=[-10, 10], showgrid=False, zeroline=False),
-                    height=400,
-                    title="Object Falling Into a Black Hole",
-                    updatemenus=[dict(
-                        type="buttons",
-                        showactive=False,
-                        buttons=[dict(
-                            label="Play",
-                            method="animate",
-                            args=[None, {"frame": {"duration": 50, "redraw": True},
-                                         "fromcurrent": True}]
-                        )]
-                    )]
+        fig = go.Figure(
+            data=[
+                go.Scatter(
+                    x=[0], y=[0],
+                    mode="markers",
+                    marker=dict(size=40, color="black"),
+                    name="Black Hole"
                 ),
-                frames=frames
-            )
+                go.Scatter(
+                    x=[20], y=[0],
+                    mode="markers",
+                    marker=dict(size=15, color="deepskyblue"),
+                    name="Falling Object"
+                )
+            ],
+            layout=go.Layout(
+                title="Object Falling Toward a Black Hole",
+                xaxis=dict(range=[-22, 22], showgrid=False, zeroline=False, visible=False),
+                yaxis=dict(range=[-10, 10], showgrid=False, zeroline=False, visible=False),
+                height=420,
+                margin=dict(l=40, r=40, t=90, b=40),
+                updatemenus=[dict(
+                    type="buttons",
+                    direction="left",
+                    x=0.5,
+                    y=1.15,
+                    xanchor="center",
+                    yanchor="top",
+                    showactive=False,
+                    buttons=[dict(
+                        label="▶ Play",
+                        method="animate",
+                        args=[None, {
+                            "frame": {"duration": 60, "redraw": True},
+                            "fromcurrent": True
+                        }]
+                    )]
+                )]
+            ),
+            frames=frames
+        )
         
-            # Event horizon circle
-            fig.add_shape(
-                type="circle",
-                xref="x", yref="y",
-                x0=-r_s, y0=-r_s,
-                x1=r_s, y1=r_s,
-                line=dict(color="red", width=3),
-                name="Event Horizon"
-            )
+        # Event Horizon
+        fig.add_shape(
+            type="circle",
+            xref="x", yref="y",
+            x0=-r_s, y0=-r_s,
+            x1=r_s, y1=r_s,
+            line=dict(color="red", width=3)
+        )
         
-            st.plotly_chart(fig, use_container_width=True)
+        # Label for Event Horizon
+        fig.add_annotation(
+            x=r_s, y=0,
+            text="Event Horizon",
+            showarrow=False,
+            font=dict(color="red")
+        )
         
+        st.plotly_chart(fig, use_container_width=True)
+
         st.markdown("""
         ### Why Does the Object Fall Into the Black Hole?
         
@@ -2026,32 +2241,81 @@ elif mode == "General Relativity":
         st.divider()
         
         # -------- Animation --------
-        st.subheader("Animated Motion")
         
-        play_geo = st.button("▶ Play Motion")
+
+        st.subheader("Animated Motion (Geodesic Path)")
         
-        placeholder = st.empty()
+        # x, y should already be defined earlier as the trajectory
+        # Example:
+        # theta = np.linspace(0, 6*np.pi, 300)
+        # r = 10 / (1 + 0.3*np.cos(theta))
+        # x = r * np.cos(theta)
+        # y = r * np.sin(theta)
         
-        if play_geo:
-            for i in range(0,300,5):
-                fig2, ax2 = plt.subplots(figsize=(5, 5))
+        frames = []
         
-                ax2.scatter(0, 0, s=300, color="black")
+        for i in range(0, len(x), 2):
+            frames.append(go.Frame(
+                data=[
+                    # Central mass
+                    go.Scatter(
+                        x=[0], y=[0],
+                        mode="markers",
+                        marker=dict(size=40, color="black"),
+                        name="Central Mass"
+                    ),
         
-                ax2.plot(x, y, color="lightgray")
+                    # Geodesic path
+                    go.Scatter(
+                        x=x, y=y,
+                        mode="lines",
+                        line=dict(color="lightgray"),
+                        name="Geodesic Path"
+                    ),
         
-                ax2.scatter(x[i], y[i], color="orange", s=80)
+                    # Moving object
+                    go.Scatter(
+                        x=[x[i]], y=[y[i]],
+                        mode="markers",
+                        marker=dict(size=12, color="orange"),
+                        name="Orbiting Object"
+                    )
+                ]
+            ))
         
-                ax2.set_aspect("equal")
-                ax2.set_xlim(-20, 20)
-                ax2.set_ylim(-20, 20)
-                ax2.set_title("Object Following a Geodesic")
-                ax2.axis("off")
+        fig = go.Figure(
+            data=frames[0].data,
+            layout=go.Layout(
+                title="Object Following a Geodesic",
+                xaxis=dict(range=[-20, 20], visible=False),
+                yaxis=dict(range=[-20, 20], visible=False),
+                height=450,
+                margin=dict(l=40, r=40, t=90, b=40),
+                updatemenus=[dict(
+                    type="buttons",
+                    direction="left",
+                    x=0.5,
+                    y=1.15,
+                    xanchor="center",
+                    yanchor="top",
+                    showactive=False,
+                    buttons=[dict(
+                        label="▶ Play",
+                        method="animate",
+                        args=[None, {
+                            "frame": {"duration": 50, "redraw": True},
+                            "fromcurrent": True
+                        }]
+                    )]
+                )]
+            ),
+            frames=frames
+        )
         
-                placeholder.pyplot(fig2)
-                time.sleep(0.005)
+        st.plotly_chart(fig, use_container_width=True)
         
         st.divider()
+
         
         # -------- GR Explanation --------
         st.markdown("""
